@@ -43,7 +43,8 @@ void getOutput(struct Model* model, double outputNeuronValues[]) {
  * @param weightGradients The weight gradient to fill.
  * @param biasGradients The bias gradient to fill.
  */
-void updateParameterDeltas(struct Model *model, const double *targetOutput, double ***weightGradients, double **biasGradients) {
+void updateParamterGradients(struct Model *model, const double *targetOutput, double ***weightGradients,
+                             double **biasGradients) {
     int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
 
     // Entry indexed by [outputNeuronIndex][layerIndex][neuronIndex] gives
@@ -68,7 +69,7 @@ void updateParameterDeltas(struct Model *model, const double *targetOutput, doub
     }
 
     // Fill errors of non-output layers
-    for (int startLayerIndex = OUTPUT_LAYER - 1; startLayerIndex > INPUT_LAYER; startLayerIndex--) {
+    for (int startLayerIndex = OUTPUT_LAYER - 1; startLayerIndex >= INPUT_LAYER; startLayerIndex--) {
         int endLayerIndex = startLayerIndex + 1;
         int offsetEndLayerIndex = offsetLayer(endLayerIndex);
 
@@ -122,7 +123,7 @@ void updateParameterDeltas(struct Model *model, const double *targetOutput, doub
     }
 }
 
-void updateWeightsAndBiases(struct Model* model, double** weightDeltas[], double* biasDeltas[]) {
+void updateParameterValues(struct Model *model, double ***weightDeltas, double **biasDeltas) {
     for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
         int offsetEndLayerIndex = offsetLayer(endLayerIndex);
 
@@ -135,27 +136,18 @@ void updateWeightsAndBiases(struct Model* model, double** weightDeltas[], double
             // update bias
             model->biases[offsetEndLayerIndex][endNeuronIndex] -= biasDelta;
             //printf("Δ Bias[%i][%i] = %lf\n", endLayerIndex, endNeuronIndex, -biasDelta);
+            //printf("Bias[%i][%i] = %lf\n", endLayerIndex, endNeuronIndex, model->biases[offsetEndLayerIndex][endNeuronIndex]);
 
             for (int startNeuronIndex = 0; startNeuronIndex < startNeuronCount; startNeuronIndex++) {
                 double weightDelta = weightDeltas[offsetEndLayerIndex][endNeuronIndex][startNeuronIndex];
 
                 // update weight
                 model->weights[offsetEndLayerIndex][endNeuronIndex][startNeuronIndex] -= weightDelta;
-                //printf("Δ Weight[%i][%i][%i] = %lf\n", endLayerIndex, endNeuronIndex, startNeuronIndex, weightDelta);
-
+                //printf("Δ Weight[%i][%i][%i] = %lf\n", endLayerIndex, endNeuronIndex, startNeuronIndex, -weightDelta);
+                //printf("Weight[%i][%i][%i] = %lf\n", endLayerIndex, endNeuronIndex, startNeuronIndex, model->weights[offsetEndLayerIndex][endNeuronIndex][startNeuronIndex]);
             }
         }
     }
-}
-
-/**
- * @see fillGradientRecursively
- */
-void updateParameterDeltasPerOutputNeuron(struct Model *model, const double *targetOutput, double ***weightGradients, double **biasGradients) {
-    int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
-
-    for (int outputNeuronIndex = 0; outputNeuronIndex < outputNeuronCount; outputNeuronIndex++)
-        updateParameterDeltas(model, targetOutput, weightGradients, biasGradients);
 }
 
 void propagateInputForward(struct Model* model, double* inputHead) {
@@ -181,11 +173,17 @@ void propagateInputForward(struct Model* model, double* inputHead) {
 
             //printf("Neuron[%i][%i] - z: %lf, a: %lf\n", layerIndex, neuronIndex, weightedSum, activatedNeuronValue);
             model->values[layerIndex][neuronIndex] = activatedNeuronValue;
+            //printf("Neuron[%i][%i] = %lf\n", layerIndex, neuronIndex, activatedNeuronValue);
         }
     }
 }
 
 static int i = 0;
+
+void test(struct Model* model, double* input, double* outputs) {
+    propagateInputForward(model, input);
+    getOutput(model, outputs);
+}
 
 /**
  * Passes the input into the model,
@@ -236,22 +234,27 @@ void train(struct Model* model, double** input, double** targetOutputs, int inpu
         // forward propagation
         propagateInputForward(model, inputHead);
         double cost = 0.0;
+        int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
 
-        for (int outputIndex = 0; outputIndex < model->neuronsPerLayer[OUTPUT_LAYER]; outputIndex++) {
+        for (int outputIndex = 0; outputIndex < outputNeuronCount; outputIndex++) {
             double value = model->values[OUTPUT_LAYER][outputIndex];
-            cost += getCost(value, targetOutput[outputIndex]);
-
+            double targetValue = targetOutput[outputIndex];
+            cost += getCost(value, targetValue);
         }
+
+        // Normalize cost
+        cost /= outputNeuronCount;
+
         printf("Epoch %i, Feature Vector Index %i: %lf\n", i, inputIndex, cost);
 
-
-        updateParameterDeltasPerOutputNeuron(model, targetOutput, weightGradients, biasGradients);
+        updateParamterGradients(model, targetOutput, weightGradients, biasGradients);
+        //updateParameterDeltasPerOutputNeuron(model, targetOutput, weightGradients, biasGradients);
 
         for (int outputNeuronIndex = 0; outputNeuronIndex < model->neuronsPerLayer[OUTPUT_LAYER]; outputNeuronIndex++) {}
             //printf("Output Neuron Value at Index %i is %lf with target value %lf.\n", outputNeuronIndex, model->values[OUTPUT_LAYER][outputNeuronIndex], targetOutput[outputNeuronIndex]);
     }
 
-    updateWeightsAndBiases(model, weightGradients, biasGradients);
+    updateParameterValues(model, weightGradients, biasGradients);
     //printf("\n");
 
     // free the memory taken by weight and bias gradients

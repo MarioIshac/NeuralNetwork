@@ -34,7 +34,8 @@ struct Model {
 };
 
 void train(struct Model* model, double* input[], double* targetOutputs[], int inputSize);
+void test(struct Model* model, double* input, double* output);
+
 int offsetLayer(int layerIndex);
-int unoffsetLayer(int layerIndex);
 
 #endif

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <zconf.h>
 #include "model.h"
 #include "functions.h"
 
@@ -15,7 +16,7 @@ double getSpeedFactor(double angle) {
 int main() {
     struct Model model = {
         .getSpeedFactor = getSpeedFactor,
-        .neuronsPerLayer = {1, 3, 1},
+        .neuronsPerLayer = {1, 1000, 1},
     };
 
     int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER];
@@ -27,7 +28,7 @@ int main() {
         inputs[inputIndex] = malloc(sizeof(double) * numberOfInputs);
 
     inputs[0][0] = 1;
-    inputs[1][0] = 4;
+    inputs[1][0] = 0;
 
     double **targetOutputs = malloc(sizeof(double*) * NUMBER_OF_TRAINING_FEATURE_VECTORS);
 
@@ -65,7 +66,7 @@ int main() {
 
     int j = 0;
 
-    while (j++ < 1000) {
+    while (j++ < 100) {
         ////printf("Epoch %i", j);
         train(&model, inputs, targetOutputs, NUMBER_OF_TRAINING_FEATURE_VECTORS);
     }
