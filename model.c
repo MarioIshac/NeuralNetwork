@@ -487,7 +487,7 @@ void train(struct Model* model, struct Data* data, int inputColumnIndices[], int
     }
 
     // now that
-    updateParameterValues(model, checkWeightGradients, checkBiasGradients);
+    updateParameterValues(model, weightGradients, biasGradients);
 
 #if GRADIENT_CHECKING
     printCheckParamterGradients(model, checkWeightGradients, checkBiasGradients);
