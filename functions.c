@@ -1,6 +1,5 @@
 #include "functions.h"
 #include "math.h"
-#include <python3.6/Python.h>
 
 double getDefaultActivation(double weightedSum) {
     double eToWSum = pow(M_E, weightedSum);
