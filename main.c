@@ -3,72 +3,98 @@
 #include <zconf.h>
 #include "model.h"
 #include "functions.h"
+#include "data.h"
 
-/**
- * @param angle The angle in degrees that the car is turning at, relative to the direction it is going at.
- * @return The factor to be applied to the car's speed when turning at this angle. In other words, the speed drop
- * off is (1 - this factor).
- */
-double getSpeedFactor(double angle) {
-    return 1 - angle / 180;
-}
+#define EPOCH_COUNT 100
+#define NUMBER_OF_COLUMNS 3
+#define TRAIN_ENTRIES_SIZE 4
+#define TEST_ENTRIES_SIZE 4
+
+#define PRINT_TEST_RESULTS true
 
 int main() {
     struct Model model = {
-        .getSpeedFactor = getSpeedFactor,
-        .neuronsPerLayer = {1, 1000, 1},
+            .neuronsPerLayer = {2, 5, 1},
+            .learningRate = 0.2,
+
+            // Default values
+            .getActivation = getDefaultActivation,
+            .getActivationChange = getDefaultActivationDerivative,
+            .getCost = getDefaultCost,
+            .getCostDerivative = getDefaultCostDerivative,
+            .activationFunctionDerivativeUsesOutput = true,
+            .getInitialWeightValue = getDefaultInitialWeightValue,
+            .getInitialBiasValue = getDefaultInitialBiasValue,
     };
 
     int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER];
     int numberOfOutputs = model.neuronsPerLayer[OUTPUT_LAYER];
 
-    double **inputs = malloc(sizeof(double*) * NUMBER_OF_TRAINING_FEATURE_VECTORS);
+    // Change working directory so data can be referenced relative to parent data folder
+    chdir("..");
+    chdir("data");
 
-    for (int inputIndex = 0; inputIndex < NUMBER_OF_TRAINING_FEATURE_VECTORS; inputIndex++)
-        inputs[inputIndex] = malloc(sizeof(double) * numberOfInputs);
+    struct Data trainData;
+    fill(&trainData, "xor/train.csv", NUMBER_OF_COLUMNS, TRAIN_ENTRIES_SIZE);
 
-    inputs[0][0] = 1;
-    inputs[1][0] = 0;
+    struct Data testData;
+    fill(&testData, "xor/test.csv", NUMBER_OF_COLUMNS, TEST_ENTRIES_SIZE);
 
-    double **targetOutputs = malloc(sizeof(double*) * NUMBER_OF_TRAINING_FEATURE_VECTORS);
+    int inputColumnIndices[numberOfInputs];
+    int outputColumnIndices[numberOfOutputs];
 
-    for (int targetOutputIndex = 0; targetOutputIndex < NUMBER_OF_TRAINING_FEATURE_VECTORS; targetOutputIndex++)
-        targetOutputs[targetOutputIndex] = malloc(sizeof(double) * numberOfOutputs);
+    inputColumnIndices[0] = 0;
+    inputColumnIndices[1] = 1;
+    outputColumnIndices[0] = 2;
 
-    targetOutputs[0][0] = true;
-    targetOutputs[1][0] = false;
+    initValues(&model);
+    initParameters(&model);
 
-    for (int layerIndex = 0; layerIndex < NUMBER_OF_LAYERS; layerIndex++) {
-        int neuronsInLayer = model.neuronsPerLayer[layerIndex];
-        model.values[layerIndex] = malloc(sizeof(double) * neuronsInLayer);
-    }
+    for (int epochIndex = 0; epochIndex < EPOCH_COUNT; epochIndex++)
+        train(&model, &trainData, inputColumnIndices, outputColumnIndices);
 
-    // initialize weights with arbitrary
-    for (int layerIndex = 1; layerIndex < NUMBER_OF_LAYERS; layerIndex++) {
-        int offsetLayerIndex = offsetLayer(layerIndex);
+    // Testing
+    double* predictedOutputs[TEST_ENTRIES_SIZE];
+    for (int predictedOutputIndex = 0; predictedOutputIndex < TEST_ENTRIES_SIZE; predictedOutputIndex++)
+        predictedOutputs[predictedOutputIndex] = malloc(sizeof(double) * numberOfOutputs);
 
-        int endNeuronCount = model.neuronsPerLayer[layerIndex];
-        int startNeuronCount = model.neuronsPerLayer[layerIndex - 1];
+    double costs[TEST_ENTRIES_SIZE];
 
-        model.weights[offsetLayerIndex] = malloc(sizeof(double*) * endNeuronCount);
+    test(&model, &testData, inputColumnIndices, outputColumnIndices, predictedOutputs, costs);
 
-        for (int endNeuronIndex = 0; endNeuronIndex < endNeuronCount; endNeuronIndex++) {
+    for (int entryIndex = 0; entryIndex < TEST_ENTRIES_SIZE; entryIndex++) {
+        double* entry = testData.elements[entryIndex];
 
-            model.weights[offsetLayerIndex][endNeuronIndex] = malloc(sizeof(double) * startNeuronCount);
-            model.biases[offsetLayerIndex] = malloc(sizeof(double) * endNeuronCount);
+        double inputs[numberOfInputs];
+        double targetOutputs[numberOfOutputs];
 
-            for (int startNeuronIndex = 0; startNeuronIndex < startNeuronCount; startNeuronIndex++) {
-                model.weights[offsetLayerIndex][endNeuronIndex][startNeuronIndex] = getDefaultWeightValue(startNeuronCount);
-                model.biases[offsetLayerIndex][endNeuronIndex] = 0.0;
-            }
+        initInput(inputs, entry, inputColumnIndices, numberOfInputs);
+        initTargetOutput(targetOutputs, entry, outputColumnIndices, numberOfOutputs);
+
+#if PRINT_TEST_RESULTS
+        printf("Inputs =");
+
+        for (int inputIndex = 0; inputIndex < numberOfInputs; inputIndex++) {
+            double input = inputs[inputIndex];
+            printf(" %lf", input);
         }
-    }
 
-    int j = 0;
+        printf(", Target Outputs =");
 
-    while (j++ < 100) {
-        ////printf("Epoch %i", j);
-        train(&model, inputs, targetOutputs, NUMBER_OF_TRAINING_FEATURE_VECTORS);
+        for (int outputIndex = 0; outputIndex < numberOfOutputs; outputIndex++) {
+            double targetOutput = targetOutputs[outputIndex];
+            printf(" %lf", targetOutput);
+        }
+
+        printf(", Predicted Outputs =");
+
+        for (int outputIndex = 0; outputIndex < numberOfOutputs; outputIndex++) {
+            double predictedOutput = predictedOutputs[entryIndex][outputIndex];
+            printf(" %lf", predictedOutput);
+        }
+
+        printf(".\n");
+#endif
     }
 
     exit(0);

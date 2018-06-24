@@ -1,32 +1,13 @@
-//
-// Created by mario on 6/20/18.
-//
-
 #include "functions.h"
 #include "math.h"
+#include <python3.6/Python.h>
 
-double getActivation(double weightedSum) {
+double getDefaultActivation(double weightedSum) {
     double eToWSum = pow(M_E, weightedSum);
     return eToWSum / (eToWSum + 1);
 }
 
-double getWeightedSum(double* weights, double* biases, double* neuronValues, int length) {
-    double weightedSum = 0.0;
-
-    for (int index = 0; index < length; index++) {
-        double weight = weights[index];
-        double bias = biases[index];
-        double neuronValue = neuronValues[index];
-
-        double weightedActivation = weight * neuronValue + bias;
-        weightedSum += weightedActivation;
-    }
-
-    return weightedSum;
-}
-
-
-double getActivationDerivative(double activationValue) {
+double getDefaultActivationDerivative(double activationValue) {
     return activationValue * (1 - activationValue);
 }
 
@@ -46,6 +27,13 @@ double getWeightedSumNeuronValueDerivative(double weight) {
     return weight;
 }
 
+double getDefaultInitialWeightValue(double previousLayerSize, double layerSize) {
+    return sqrt(2 / (previousLayerSize));
+}
+
+double getDefaultInitialBiasValue(double previousLayerSize, double layerSize) {
+    return 0;
+}
 
 /**
  * @return delta z[column, end_index] / delta b[column, end_index]. This is always
@@ -55,15 +43,11 @@ double getWeightedSumBiasDerivative() {
     return 1;
 }
 
-double getCost(double neuronValue, double intendedValue) {
+double getDefaultCost(double neuronValue, double intendedValue) {
     double difference = neuronValue - intendedValue;
 
     return pow(difference, 2);
 }
-double getCostDerivative(double neuronValue, double intendedValue) {
+double getDefaultCostDerivative(double neuronValue, double intendedValue) {
     return neuronValue - intendedValue;
-}
-
-double getDefaultWeightValue(int numberOfLinks) {
-    return sqrt(2 / numberOfLinks);
 }
