@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <zconf.h>
+#include <time.h>
 #include "model.h"
 #include "functions.h"
 #include "data.h"
 
-#define EPOCH_COUNT 100
+#define EPOCH_COUNT 20000
 #define NUMBER_OF_COLUMNS 3
 #define TRAIN_ENTRIES_SIZE 4
 #define TEST_ENTRIES_SIZE 4
@@ -13,18 +14,21 @@
 #define PRINT_TEST_RESULTS true
 
 int main() {
+    time_t currentTime;
+    time(&currentTime);
+    srand(currentTime);
+
     struct Model model = {
-            .neuronsPerLayer = {2, 5, 1},
-            .learningRate = 0.2,
+            .neuronsPerLayer = {2, 2, 1},
+            .learningRate = 0.02,
 
             // Default values
-            .getActivation = getDefaultActivation,
-            .getActivationChange = getDefaultActivationDerivative,
-            .getCost = getDefaultCost,
-            .getCostDerivative = getDefaultCostDerivative,
-            .activationFunctionDerivativeUsesOutput = true,
-            .getInitialWeightValue = getDefaultInitialWeightValue,
-            .getInitialBiasValue = getDefaultInitialBiasValue,
+            .getActivation = applySigmoid,
+            .getActivationDerivative = applySigmoidDerivative,
+            .getCost = getCost,
+            .getCostDerivative = getCostDerivative,
+            .getInitialWeightValue = getInitialRandomWeight,
+            .getInitialBiasValue = getInitialBias,
     };
 
     int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER];
@@ -32,13 +36,12 @@ int main() {
 
     // Change working directory so data can be referenced relative to parent data folder
     chdir("..");
-    chdir("data");
 
     struct Data trainData;
-    fill(&trainData, "xor/train.csv", NUMBER_OF_COLUMNS, TRAIN_ENTRIES_SIZE);
+    fill(&trainData, "data/xor/train.csv", NUMBER_OF_COLUMNS, TRAIN_ENTRIES_SIZE);
 
     struct Data testData;
-    fill(&testData, "xor/test.csv", NUMBER_OF_COLUMNS, TEST_ENTRIES_SIZE);
+    fill(&testData, "data/xor/test.csv", NUMBER_OF_COLUMNS, TEST_ENTRIES_SIZE);
 
     int inputColumnIndices[numberOfInputs];
     int outputColumnIndices[numberOfOutputs];
@@ -96,7 +99,6 @@ int main() {
         printf(".\n");
 #endif
     }
-
     exit(0);
 }
 

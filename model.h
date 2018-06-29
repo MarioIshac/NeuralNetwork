@@ -14,6 +14,7 @@ typedef double (*ActivationFunction)(double);
 typedef double (*WeightInitializationFunction)(double, double);
 typedef double (*BiasInitializingFunction)(double, double);
 
+
 /**
  * Represents a model to be used in regards to training the vehicle to move efficiently.
  * Implemented as a neural network.
@@ -21,8 +22,8 @@ typedef double (*BiasInitializingFunction)(double, double);
 struct Model {
     /* Weight of link between two neurons is received with indices
      * [layer index of end neuron][index of end neuron within its layer][index of start neuron within its layer] */
-    double** weights[NUMBER_OF_LAYERS - 1];
-    double* biases[NUMBER_OF_LAYERS - 1];
+    double** weights[NUMBER_OF_LAYERS];
+    double* biases[NUMBER_OF_LAYERS];
     double* values[NUMBER_OF_LAYERS];
 
     int neuronsPerLayer[NUMBER_OF_LAYERS];
@@ -36,7 +37,7 @@ struct Model {
     /**
      * the derivative of the function used to activate the neuron.
      */
-    ActivationFunction getActivationChange;
+    ActivationFunction getActivationDerivative;
 
     /**
      * the function uses to calculate the cost, given an output neuron's value and its target value
@@ -51,12 +52,6 @@ struct Model {
 
     WeightInitializationFunction getInitialWeightValue;
     BiasInitializingFunction getInitialBiasValue;
-
-    /**
-     * specifies whether the given activation function derivative can take the output of the activation function
-     * rather than the input. This is the case for sigmoid
-     */
-    bool activationFunctionDerivativeUsesOutput;
 };
 
 void train(struct Model* model, struct Data* data, int inputColumnIndices[], int outputColumnIndices[]);
@@ -64,8 +59,6 @@ void test(struct Model* model, struct Data* data, int inputColumnIndices[], int 
 void compute(struct Model* model, struct Data* data, int inputColumnIndices[], double cost[]);
 void initParameters(struct Model* model);
 void initValues(struct Model* model);
-
-int offsetLayer(int layerIndex);
 
 void initInput(double input[], const double entry[], const int inputColumnIndices[], int inputColumnIndicesCount);
 void initTargetOutput(double targetOutput[], const double entry[], const int targetOutputIndices[], int targetOutputIndicesCount);

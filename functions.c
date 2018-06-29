@@ -1,52 +1,50 @@
+#include <stdlib.h>
 #include "functions.h"
 #include "math.h"
 
-double getDefaultActivation(double weightedSum) {
+double applySigmoid(double weightedSum) {
     double eToWSum = pow(M_E, weightedSum);
     return eToWSum / (eToWSum + 1);
 }
 
-double getDefaultActivationDerivative(double activationValue) {
+double applySigmoidDerivative(double activationValue) {
     return activationValue * (1 - activationValue);
 }
 
-/**
- * start_index can be any value
- *
- * @param neuronValue value of w[column][end_index][start_index]
- * @return delta z[column, end_index] / delta w[column, end_index, start_index]. This is always
- * equivalent to the neuron value itself since weight is multiplied with the neuron value when calculating
- * weighted sum.
- */
-double getWeightedSumWeightDerivative(double neuronValue) {
-    return neuronValue;
+double applyReLU(double weightedSum) {
+    return weightedSum < 0 ? 0 : weightedSum;
 }
 
-double getWeightedSumNeuronValueDerivative(double weight) {
-    return weight;
+double applyReLUDerivative(double activationValue) {
+    return activationValue == 0 ? 0 : 1;
 }
 
-double getDefaultInitialWeightValue(double previousLayerSize, double layerSize) {
-    return sqrt(2 / (previousLayerSize));
+double applyTanH(double weightedSum) {
+    return 2 * applyReLU(2 * weightedSum) - 1;
 }
 
-double getDefaultInitialBiasValue(double previousLayerSize, double layerSize) {
+double applyTanHDerivative(double activationValue) {
+    return 1 - pow(activationValue, 2);
+}
+
+double getInitialXavierWeight(double previousLayerSize, double layerSize) {
+    return sqrt(2 / previousLayerSize);
+}
+
+double getInitialRandomWeight(double previousLayerSize, double layerSize) {
+    return ((double) rand() / RAND_MAX) * 0.01;
+}
+
+double getInitialBias(double previousLayerSize, double layerSize) {
     return 0;
 }
 
-/**
- * @return delta z[column, end_index] / delta b[column, end_index]. This is always
- * constant (1) since the bias is not multiplied by the neuron value when calculating weighted sum.
- */
-double getWeightedSumBiasDerivative() {
-    return 1;
-}
-
-double getDefaultCost(double neuronValue, double intendedValue) {
+double getCost(double neuronValue, double intendedValue) {
     double difference = neuronValue - intendedValue;
 
-    return pow(difference, 2);
+    return 0.5 * pow(difference, 2);
 }
-double getDefaultCostDerivative(double neuronValue, double intendedValue) {
+
+double getCostDerivative(double neuronValue, double intendedValue) {
     return neuronValue - intendedValue;
 }
