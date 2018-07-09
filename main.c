@@ -6,10 +6,7 @@
 #include "functions.h"
 #include "data.h"
 
-#define EPOCH_COUNT 20000
-#define NUMBER_OF_COLUMNS 3
-#define TRAIN_ENTRIES_SIZE 4
-#define TEST_ENTRIES_SIZE 4
+#define EPOCH_COUNT 100000
 
 #define PRINT_TEST_RESULTS true
 
@@ -19,16 +16,16 @@ int main() {
     srand(currentTime);
 
     struct Model model = {
-            .neuronsPerLayer = {2, 2, 1},
-            .learningRate = 0.02,
+        .neuronsPerLayer = {2, 2, 1},
+        .learningRate = 1,
 
-            // Default values
-            .getActivation = applySigmoid,
-            .getActivationDerivative = applySigmoidDerivative,
-            .getCost = getCost,
-            .getCostDerivative = getCostDerivative,
-            .getInitialWeightValue = getInitialRandomWeight,
-            .getInitialBiasValue = getInitialBias,
+        // Default values
+        .getActivation = getSigmoid,
+        .getActivationDerivative = getSigmoidPrime,
+        .getCost = getCost,
+        .getCostDerivative = getCostPrime,
+        .getInitialWeightValue = getInitialRandomWeight,
+        .getInitialBiasValue = getInitialBias,
     };
 
     int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER];
@@ -38,10 +35,10 @@ int main() {
     chdir("..");
 
     struct Data trainData;
-    fill(&trainData, "data/xor/train.csv", NUMBER_OF_COLUMNS, TRAIN_ENTRIES_SIZE);
+    fill(&trainData, "data/xor/train.csv");
 
     struct Data testData;
-    fill(&testData, "data/xor/test.csv", NUMBER_OF_COLUMNS, TEST_ENTRIES_SIZE);
+    fill(&testData, "data/xor/test.csv");
 
     int inputColumnIndices[numberOfInputs];
     int outputColumnIndices[numberOfOutputs];
@@ -57,15 +54,15 @@ int main() {
         train(&model, &trainData, inputColumnIndices, outputColumnIndices);
 
     // Testing
-    double* predictedOutputs[TEST_ENTRIES_SIZE];
-    for (int predictedOutputIndex = 0; predictedOutputIndex < TEST_ENTRIES_SIZE; predictedOutputIndex++)
+    double* predictedOutputs[testData.numberOfEntries];
+    for (int predictedOutputIndex = 0; predictedOutputIndex < testData.numberOfEntries; predictedOutputIndex++)
         predictedOutputs[predictedOutputIndex] = malloc(sizeof(double) * numberOfOutputs);
 
-    double costs[TEST_ENTRIES_SIZE];
+    double costs[testData.numberOfEntries];
 
     test(&model, &testData, inputColumnIndices, outputColumnIndices, predictedOutputs, costs);
 
-    for (int entryIndex = 0; entryIndex < TEST_ENTRIES_SIZE; entryIndex++) {
+    for (int entryIndex = 0; entryIndex < testData.numberOfEntries; entryIndex++) {
         double* entry = testData.elements[entryIndex];
 
         double inputs[numberOfInputs];
@@ -99,6 +96,22 @@ int main() {
         printf(".\n");
 #endif
     }
-    exit(0);
+
+    for (int predictedOutputIndex = 0; predictedOutputIndex < testData.numberOfEntries; predictedOutputIndex++) {
+        double* predictedOutput = predictedOutputs[predictedOutputIndex];
+
+        free(predictedOutput);
+    }
+
+    freeColumnNames(&trainData);
+    freeElements(&trainData);
+
+    freeColumnNames(&testData);
+    freeElements(&testData);
+
+    freeValues(&model);
+    freeParameters(&model);
+
+    return 0;
 }
 

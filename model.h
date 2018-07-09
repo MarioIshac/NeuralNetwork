@@ -7,7 +7,6 @@
 #define NUMBER_OF_LAYERS 3
 #define INPUT_LAYER 0
 #define OUTPUT_LAYER (NUMBER_OF_LAYERS - 1)
-#define NUMBER_OF_TRAINING_FEATURE_VECTORS 2
 
 typedef double (*CostFunction)(double, double);
 typedef double (*ActivationFunction)(double);
@@ -54,11 +53,14 @@ struct Model {
     BiasInitializingFunction getInitialBiasValue;
 };
 
-void train(struct Model* model, struct Data* data, int inputColumnIndices[], int outputColumnIndices[]);
+void train(struct Model* model, struct Data* data, int inputColumnIndices[], int targetOutputColumnIndices[]);
 void test(struct Model* model, struct Data* data, int inputColumnIndices[], int outputColumnIndices[], double* predictedOutputs[], double costs[]);
-void compute(struct Model* model, struct Data* data, int inputColumnIndices[], double cost[]);
+
 void initParameters(struct Model* model);
 void initValues(struct Model* model);
+
+void freeParameters(struct Model* model);
+void freeValues(struct Model* model);
 
 void initInput(double input[], const double entry[], const int inputColumnIndices[], int inputColumnIndicesCount);
 void initTargetOutput(double targetOutput[], const double entry[], const int targetOutputIndices[], int targetOutputIndicesCount);

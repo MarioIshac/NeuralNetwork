@@ -1,12 +1,14 @@
 #ifndef NEURALNETWORK_FUNCTIONS_H
 #define NEURALNETWORK_FUNCTIONS_H
 
-double applySigmoid(double weightedSum);
-double applySigmoidDerivative(double activationValue);
-double applyReLU(double weightedSum);
-double applyReLUDerivative(double activationVale);
-double applyTanH(double weightedSum);
-double applyTanHDerivative(double activationValue);
+#include "model.h"
+
+double getSigmoid(double weightedSum);
+double getSigmoidPrime(double activationValue);
+double getReLU(double weightedSum);
+double getReLUPrime(double activationVale);
+double getTanH(double weightedSum);
+double getTanHPrime(double activationValue);
 
 /**
  * Calculates the derivative of the function that produces the weighted sum given a weight, neuron value and bias,
@@ -53,7 +55,7 @@ double getCost(double neuronValue, double intendedValue);
  * @return Δ "cost"/effect of the network outputting {@code neuronValue} instead of {@code intendedValue} /
  *         Δ neuronValue
  */
-double getCostDerivative(double neuronValue, double intendedValue);
+double getCostPrime(double neuronValue, double intendedValue);
 
 /**
  * Calculates the initial value that a weight[endLayerIndex][endNeuronIndex][startNeuronIndex]
@@ -76,5 +78,7 @@ double getInitialRandomWeight(double previousLayerSize, double layerSize);
  * @return
  */
 double getInitialBias(double previousLayerSize, double layerSize);
+
+WeightInitializationFunction getRandomWeightGenerator(double min, double max);
 
 #endif

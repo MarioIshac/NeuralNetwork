@@ -2,28 +2,28 @@
 #include "functions.h"
 #include "math.h"
 
-double applySigmoid(double weightedSum) {
+double getSigmoid(double weightedSum) {
     double eToWSum = pow(M_E, weightedSum);
     return eToWSum / (eToWSum + 1);
 }
 
-double applySigmoidDerivative(double activationValue) {
+double getSigmoidPrime(double activationValue) {
     return activationValue * (1 - activationValue);
 }
 
-double applyReLU(double weightedSum) {
+double getReLU(double weightedSum) {
     return weightedSum < 0 ? 0 : weightedSum;
 }
 
-double applyReLUDerivative(double activationValue) {
+double getReLUPrime(double activationValue) {
     return activationValue == 0 ? 0 : 1;
 }
 
-double applyTanH(double weightedSum) {
-    return 2 * applyReLU(2 * weightedSum) - 1;
+double getTanH(double weightedSum) {
+    return 2 * getSigmoid(2 * weightedSum) - 1;
 }
 
-double applyTanHDerivative(double activationValue) {
+double getTanHPrime(double activationValue) {
     return 1 - pow(activationValue, 2);
 }
 
@@ -32,7 +32,7 @@ double getInitialXavierWeight(double previousLayerSize, double layerSize) {
 }
 
 double getInitialRandomWeight(double previousLayerSize, double layerSize) {
-    return ((double) rand() / RAND_MAX) * 0.01;
+    return ((double) rand() / RAND_MAX);
 }
 
 double getInitialBias(double previousLayerSize, double layerSize) {
@@ -45,6 +45,19 @@ double getCost(double neuronValue, double intendedValue) {
     return 0.5 * pow(difference, 2);
 }
 
-double getCostDerivative(double neuronValue, double intendedValue) {
+double getCostPrime(double neuronValue, double intendedValue) {
     return neuronValue - intendedValue;
+}
+
+WeightInitializationFunction getRandomWeightGenerator(double min, double max) {
+    double getRandomWeight(double startNeuronCount, double endNeuronCount) {
+        float randomValue = rand();
+
+        randomValue /= (max - min);
+        randomValue += min;
+
+        return randomValue;
+    }
+
+    return getRandomWeight;
 }
