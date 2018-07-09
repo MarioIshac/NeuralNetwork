@@ -73,7 +73,6 @@ void fill(struct Data* data, char fileName[]) {
             data->elements[entryIndex][columnIndex] = elementValue;
 
             elementValueStr = strtok_r(NULL, ",", &saveForValue);
-            printf("Element[%i][%i] = %lf\n", entryIndex, columnIndex, data->elements[entryIndex][columnIndex]);
         }
 
         line = strtok_r(NULL, "\n", &saveForLine);

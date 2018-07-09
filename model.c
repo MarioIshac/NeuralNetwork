@@ -4,11 +4,9 @@
 #include "model.h"
 #include "functions.h"
 
-#define GRADIENT_CHECKING true
-#define PRINT_NEURON_VALUE false
+#define GRADIENT_CHECKING false
 #define PRINT_WEIGHT_UPDATE false
-#define PRINT_BIAS_UPDATE false
-#define PRINT_EPOCH_UPDATE true
+#define PRINT_EPOCH_UPDATE false
 
 /**
  * @param model
@@ -29,30 +27,19 @@ void propagateInputForward(struct Model* model, double input[]) {
         int startNeuronCount = model->neuronsPerLayer[startLayerIndex];
 
         for (int endNeuronIndex = 0; endNeuronIndex < endNeuronCount; endNeuronIndex++) {
-            double weightedSum = 0.0;
-            double bias = model->biases[endLayerIndex][endNeuronIndex];
-
-            //printf("Neuron[%i][%i] =", endLayerIndex, endNeuronIndex);
+            // Add bias at beginning, same as adding at end
+            double weightedSum = model->biases[endLayerIndex][endNeuronIndex];
 
             for (int startNeuronIndex = 0; startNeuronIndex < startNeuronCount; startNeuronIndex++) {
                 double weight = model->weights[endLayerIndex][endNeuronIndex][startNeuronIndex];
                 double startNeuronValue = model->values[startLayerIndex][startNeuronIndex];
 
-                //printf(" W_%lf * V_%lf +", weight, startNeuronValue);
-
                 double weightedInfluence = weight * startNeuronValue;
                 weightedSum += weightedInfluence;
             }
 
-            weightedSum += bias;
-
             double activatedNeuronValue = model->getActivation(weightedSum);
 
-            //printf(" %lf -> %lf -> activation -> %lf\n", bias, weightedSum, activatedNeuronValue);
-
-#if PRINT_NEURON_VALUE
-           // printf("Neuron[%i][%i] - Pre-Acivation: %lf, Post-Activation: %lf\n", layerIndex, neuronIndex, weightedSum, activatedNeuronValue);
-#endif
             model->values[endLayerIndex][endNeuronIndex] = activatedNeuronValue;
         }
     }
@@ -88,7 +75,7 @@ double getTotalCost(struct Model* model, const double targetOutputs[]) {
  */
 void updateCheckParameterGradients(struct Model* model, double input[], const double targetOutput[],
                                    double** checkWeightGradient[], double* checkBiasGradients[]) {
-    static float epsilon = 1e-5;
+    const static float epsilon = 1e-5;
 
     double preChangeTotalCost = getTotalCost(model, targetOutput);
 
@@ -188,8 +175,6 @@ void updateParameterGradients(struct Model* model, const double* targetOutput, d
         double error = firstErrorComponent * secondErrorComponent;
 
         errors[outputLayerIndex][outputNeuronIndex] = error;
-
-        //printf("Error[%i][%i] = %lf\n", OUTPUT_LAYER, outputNeuronIndex, error);
     }
 
     // Fill errors of non-output layers
@@ -218,8 +203,6 @@ void updateParameterGradients(struct Model* model, const double* targetOutput, d
             }
 
             errors[startLayerIndex][startNeuronIndex] = error;
-
-            //printf("Error[%i][%i] = %lf\n", startLayerIndex, startNeuronIndex, error);
         }
     }
 
@@ -543,7 +526,7 @@ void initParameters(struct Model* model) {
     model->weights = malloc(sizeof(double**) * model->numberOfLayers);
     model->biases = malloc(sizeof(double*) * model->numberOfLayers);
 
-    for (int endLayerIndex = 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         int startLayerIndex = endLayerIndex - 1;
@@ -565,7 +548,7 @@ void initParameters(struct Model* model) {
 }
 
 void freeParameters(struct Model* model) {
-    for (int endLayerIndex = 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         double* layerBiases = model->biases[endLayerIndex];
@@ -596,7 +579,6 @@ void initValues(struct Model* model) {
 void freeValues(struct Model* model) {
     for (int layerIndex = 0; layerIndex < model->numberOfLayers; layerIndex++) {
         double* layerValues = model->values[layerIndex];
-
         free(layerValues);
     }
 
