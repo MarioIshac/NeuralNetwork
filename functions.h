@@ -79,6 +79,4 @@ double getInitialRandomWeight(double previousLayerSize, double layerSize);
  */
 double getInitialBias(double previousLayerSize, double layerSize);
 
-WeightInitializationFunction getRandomWeightGenerator(double min, double max);
-
 #endif

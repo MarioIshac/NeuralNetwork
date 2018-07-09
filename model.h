@@ -3,10 +3,15 @@
 
 #include <stdbool.h>
 #include "data.h"
+#include "functions.h"
 
-#define NUMBER_OF_LAYERS 3
+typedef int ActivationFunctionType;
+
+#define SIGMOID 0
+#define TANH 1
+#define RELU 2
+
 #define INPUT_LAYER 0
-#define OUTPUT_LAYER (NUMBER_OF_LAYERS - 1)
 
 typedef double (*CostFunction)(double, double);
 typedef double (*ActivationFunction)(double);
@@ -21,11 +26,13 @@ typedef double (*BiasInitializingFunction)(double, double);
 struct Model {
     /* Weight of link between two neurons is received with indices
      * [layer index of end neuron][index of end neuron within its layer][index of start neuron within its layer] */
-    double** weights[NUMBER_OF_LAYERS];
-    double* biases[NUMBER_OF_LAYERS];
-    double* values[NUMBER_OF_LAYERS];
+    double*** weights;
+    double** biases;
+    double** values;
 
-    int neuronsPerLayer[NUMBER_OF_LAYERS];
+    int numberOfLayers;
+    int* neuronsPerLayer;
+
     double learningRate;
 
     /**
@@ -36,7 +43,7 @@ struct Model {
     /**
      * the derivative of the function used to activate the neuron.
      */
-    ActivationFunction getActivationDerivative;
+    ActivationFunction getActivationPrime;
 
     /**
      * the function uses to calculate the cost, given an output neuron's value and its target value
@@ -47,7 +54,7 @@ struct Model {
      * the function used to calculate the derivative of the cost with respect to the output neuron's value, given the
      * output neuron's value and its target value
      */
-    CostFunction getCostDerivative;
+    CostFunction getCostPrime;
 
     WeightInitializationFunction getInitialWeightValue;
     BiasInitializingFunction getInitialBiasValue;
@@ -64,5 +71,7 @@ void freeValues(struct Model* model);
 
 void initInput(double input[], const double entry[], const int inputColumnIndices[], int inputColumnIndicesCount);
 void initTargetOutput(double targetOutput[], const double entry[], const int targetOutputIndices[], int targetOutputIndicesCount);
+
+void initializeModel(struct Model* model, int neuronsPerLayer[], int numberOfLayers, double learningRate, ActivationFunctionType activationFunctionType);
 
 #endif

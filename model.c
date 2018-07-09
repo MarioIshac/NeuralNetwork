@@ -22,7 +22,7 @@ void setInput(struct Model* model, double input[]) {
 void propagateInputForward(struct Model* model, double input[]) {
     setInput(model, input);
 
-    for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int startLayerIndex = endLayerIndex - 1;
 
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
@@ -60,12 +60,14 @@ void propagateInputForward(struct Model* model, double input[]) {
 
 #if GRADIENT_CHECKING
 double getTotalCost(struct Model* model, const double targetOutputs[]) {
-    int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
+    const int outputLayerIndex = model->numberOfLayers - 1;
+
+    int outputNeuronCount = model->neuronsPerLayer[outputLayerIndex];
 
     double totalCost = 0.0;
 
     for (int outputNeuronIndex = 0; outputNeuronIndex < outputNeuronCount; outputNeuronIndex++) {
-        double outputNeuronValue = model->values[OUTPUT_LAYER][outputNeuronIndex];
+        double outputNeuronValue = model->values[outputLayerIndex][outputNeuronIndex];
         double expectedOutputNeuronValue = targetOutputs[outputNeuronIndex];
 
         double cost = model->getCost(outputNeuronValue, expectedOutputNeuronValue);
@@ -90,7 +92,7 @@ void updateCheckParameterGradients(struct Model* model, double input[], const do
 
     double preChangeTotalCost = getTotalCost(model, targetOutput);
 
-    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int startLayerIndex = endLayerIndex - 1;
 
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
@@ -126,7 +128,7 @@ void updateCheckParameterGradients(struct Model* model, double input[], const do
 void updateParameterDifferences(struct Model *model, double ***weightGradients, double **biasGradients,
                                 double ***checkWeightGradients, double **checkBiasGradients,
                                 double ***weightDifferences, double **biasDifferences) {
-    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         int startLayerIndex = endLayerIndex - 1;
@@ -163,33 +165,35 @@ void updateParameterDifferences(struct Model *model, double ***weightGradients, 
  */
 void updateParameterGradients(struct Model* model, const double* targetOutput, double** weightGradients[],
                               double* biasGradients[]) {
-    int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
+    const int outputLayerIndex = model->numberOfLayers - 1;
+
+    int outputNeuronCount = model->neuronsPerLayer[outputLayerIndex];
 
     // Entry indexed by [layerIndex][neuronIndex] gives
     // Δ C / Δ Z[layerIndex, neuronIndex]
-    double* errors[NUMBER_OF_LAYERS];
+    double* errors[model->numberOfLayers];
 
-    errors[OUTPUT_LAYER] = malloc(sizeof(double) * outputNeuronCount);
+    errors[outputLayerIndex] = malloc(sizeof(double) * outputNeuronCount);
 
     // Fill errors of output layers
     for (int outputNeuronIndex = 0; outputNeuronIndex < outputNeuronCount; outputNeuronIndex++) {
-        double outputNeuronValue = model->values[OUTPUT_LAYER][outputNeuronIndex];
+        double outputNeuronValue = model->values[outputLayerIndex][outputNeuronIndex];
         double targetOutputNeuronValue = targetOutput[outputNeuronIndex];
 
         // Δ C_outputNeuronIndex / Δ A[OUTPUT_LAYER][outputNeuronIndex]
-        double firstErrorComponent = model->getCostDerivative(outputNeuronValue, targetOutputNeuronValue);
+        double firstErrorComponent = model->getCostPrime(outputNeuronValue, targetOutputNeuronValue);
         // Δ A[OUTPUT_LAYER][outputNeuronIndex] / Δ Z[OUTPUT_LAYER][outputNeuronIndex]
-        double secondErrorComponent = model->getActivationDerivative(outputNeuronValue);
+        double secondErrorComponent = model->getActivationPrime(outputNeuronValue);
         // Δ C_outputNeuronIndex / Δ Z[OUTPUT_LAYER][outputNeuronIndex]
         double error = firstErrorComponent * secondErrorComponent;
 
-        errors[OUTPUT_LAYER][outputNeuronIndex] = error;
+        errors[outputLayerIndex][outputNeuronIndex] = error;
 
         //printf("Error[%i][%i] = %lf\n", OUTPUT_LAYER, outputNeuronIndex, error);
     }
 
     // Fill errors of non-output layers
-    for (int endLayerIndex = OUTPUT_LAYER; endLayerIndex > INPUT_LAYER; endLayerIndex--) {
+    for (int endLayerIndex = outputLayerIndex; endLayerIndex > INPUT_LAYER; endLayerIndex--) {
         int startLayerIndex = endLayerIndex - 1;
 
         int startNeuronsCount = model->neuronsPerLayer[startLayerIndex];
@@ -207,7 +211,7 @@ void updateParameterGradients(struct Model* model, const double* targetOutput, d
                 double activationValue = model->values[startLayerIndex][startNeuronIndex];
 
                 // Δ A[startLayerIndex][startNeuronIndex] / Δ Z[startLayerIndex][startNeuronIndex]
-                double thirdComponent = model->getActivationDerivative(activationValue);
+                double thirdComponent = model->getActivationPrime(activationValue);
 
                 double errorInfluence = nextWeight * nextError * thirdComponent;
                 error += errorInfluence;
@@ -220,7 +224,7 @@ void updateParameterGradients(struct Model* model, const double* targetOutput, d
     }
 
     // Update weights and biases of all layers based on errors
-    for (int endLayerIndex = OUTPUT_LAYER; endLayerIndex > INPUT_LAYER; endLayerIndex--) {
+    for (int endLayerIndex = outputLayerIndex; endLayerIndex > INPUT_LAYER; endLayerIndex--) {
         int startLayerIndex = endLayerIndex - 1;
 
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
@@ -243,8 +247,8 @@ void updateParameterGradients(struct Model* model, const double* targetOutput, d
         }
     }
 
-    for (int layerIndex = INPUT_LAYER; layerIndex < NUMBER_OF_LAYERS; layerIndex++) {
-        double* layerErrors = errors[layerIndex];
+    for (int endLayerIndex = INPUT_LAYER; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
+        double* layerErrors = errors[endLayerIndex];
         free(layerErrors);
     }
 }
@@ -257,8 +261,8 @@ void updateParameterGradients(struct Model* model, const double* targetOutput, d
  * @param weightGradients
  * @param biasGradients
  */
-void updateParameterValues(struct Model* model, double** weightGradients[], double* biasGradients[], int batchSize) {
-    for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+void updateParameterValues(struct Model* model, double*** weightGradients, double** biasGradients, int batchSize) {
+    for (int endLayerIndex = 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         int startLayerIndex = endLayerIndex - 1;
@@ -306,8 +310,8 @@ static int epochIndex = 0;
  * @param weightGradients
  * @param biasGradients
  */
-void initGradients(struct Model *model, double ***weightGradients, double **biasGradients) {
-    for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+void initializeGradients(struct Model* model, double*** weightGradients, double** biasGradients) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         int startLayerIndex = endLayerIndex - 1;
@@ -367,8 +371,10 @@ void initTargetOutput(double targetOutput[], const double entry[], const int out
  * @param costs
  */
 void test(struct Model* model, struct Data* data, int inputColumnIndices[], int outputColumnIndices[], double** predictedOutputs, double costs[]) {
+    const int outputLayerIndex = model->numberOfLayers - 1;
+
     int inputNeuronCount = model->neuronsPerLayer[INPUT_LAYER];
-    int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
+    int outputNeuronCount = model->neuronsPerLayer[outputLayerIndex];
 
     for (int entryIndex = 0; entryIndex < data->numberOfEntries; entryIndex++) {
         double *entry = data->elements[entryIndex];
@@ -384,7 +390,7 @@ void test(struct Model* model, struct Data* data, int inputColumnIndices[], int 
         double cost = 0.0;
 
         for (int outputIndex = 0; outputIndex < outputNeuronCount; outputIndex++) {
-            double value = model->values[OUTPUT_LAYER][outputIndex];
+            double value = model->values[outputLayerIndex][outputIndex];
             predictedOutputs[entryIndex][outputIndex] = value;
 
             double targetValue = targetOutput[outputIndex];
@@ -398,8 +404,8 @@ void test(struct Model* model, struct Data* data, int inputColumnIndices[], int 
     }
 }
 
-void freeGradients(struct Model* model, double** weightGradients[], double** biasGradients) {
-    for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+void freeGradients(struct Model* model, double*** weightGradients, double** biasGradients) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         double* layerBiases = biasGradients[endLayerIndex];
 
         free(layerBiases);
@@ -426,31 +432,34 @@ void freeGradients(struct Model* model, double** weightGradients[], double** bia
  * @param targetOutputColumnIndices The indices of the columns within {@code data} that are the output columns.
  */
 void train(struct Model* model, struct Data* data, int inputColumnIndices[], int targetOutputColumnIndices[]) {
+    const int outputLayerIndex = model->numberOfLayers - 1;
+
+    const int inputNeuronCount = model->neuronsPerLayer[INPUT_LAYER];
+    const int outputNeuronCount = model->neuronsPerLayer[outputLayerIndex];
+
     // For both weightGradients and biasGradients, index 0 is not occupied.
     // [endLayerIndex][endNeuronIndex in layerIndex][startNeuronIndex in layerIndex - 1]
-    double** weightGradients[NUMBER_OF_LAYERS];
+    double** weightGradients[model->numberOfLayers];
     // [endLayerIndex][endNeuronIndex]
-    double* biasGradients[NUMBER_OF_LAYERS];
+    double* biasGradients[model->numberOfLayers];
 
     // Allocate the storage for the weight and bias deltas, in addition
     // to initializing them all weight and bias deltas with values of 0
-    initGradients(model, weightGradients, biasGradients);
+    initializeGradients(model, weightGradients, biasGradients);
 
 #if GRADIENT_CHECKING
     // indexed same way as weightGradients and biasGradients
-    double** checkWeightGradients[NUMBER_OF_LAYERS];
-    double* checkBiasGradients[NUMBER_OF_LAYERS];
+    double** checkWeightGradients[model->numberOfLayers];
+    double* checkBiasGradients[model->numberOfLayers];
 
-    initGradients(model, checkWeightGradients, checkBiasGradients);
+    initializeGradients(model, checkWeightGradients, checkBiasGradients);
 
-    double** weightGradientsDifference[NUMBER_OF_LAYERS];
-    double* biasGradientsDifference[NUMBER_OF_LAYERS];
+    double** weightGradientsDifference[model->numberOfLayers];
+    double* biasGradientsDifference[model->numberOfLayers];
 
-    initGradients(model, weightGradientsDifference, biasGradientsDifference);
+    initializeGradients(model, weightGradientsDifference, biasGradientsDifference);
 #endif
 
-    int inputNeuronCount = model->neuronsPerLayer[INPUT_LAYER];
-    int outputNeuronCount = model->neuronsPerLayer[OUTPUT_LAYER];
     epochIndex++;
 
     // Feed each input into model
@@ -470,9 +479,9 @@ void train(struct Model* model, struct Data* data, int inputColumnIndices[], int
 #if PRINT_EPOCH_UPDATE
         double cost = 0.0;
 
-        for (int outputIndex = 0; outputIndex < outputNeuronCount; outputIndex++) {
-            double value = model->values[OUTPUT_LAYER][outputIndex];
-            double targetValue = targetOutput[outputIndex];
+        for (int outputNeuronIndex = 0; outputNeuronIndex < outputNeuronCount; outputNeuronIndex++) {
+            double value = model->values[outputLayerIndex][outputNeuronIndex];
+            double targetValue = targetOutput[outputNeuronIndex];
             cost += model->getCost(value, targetValue);
         }
 
@@ -492,7 +501,7 @@ void train(struct Model* model, struct Data* data, int inputColumnIndices[], int
                                checkWeightGradients, checkBiasGradients,
                                weightGradientsDifference, biasGradientsDifference);
 
-    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+    for (int endLayerIndex = INPUT_LAYER + 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         int startLayerIndex = endLayerIndex - 1;
@@ -531,7 +540,10 @@ void train(struct Model* model, struct Data* data, int inputColumnIndices[], int
  * @param model
  */
 void initParameters(struct Model* model) {
-    for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+    model->weights = malloc(sizeof(double**) * model->numberOfLayers);
+    model->biases = malloc(sizeof(double*) * model->numberOfLayers);
+
+    for (int endLayerIndex = 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         int startLayerIndex = endLayerIndex - 1;
@@ -553,7 +565,7 @@ void initParameters(struct Model* model) {
 }
 
 void freeParameters(struct Model* model) {
-    for (int endLayerIndex = 1; endLayerIndex < NUMBER_OF_LAYERS; endLayerIndex++) {
+    for (int endLayerIndex = 1; endLayerIndex < model->numberOfLayers; endLayerIndex++) {
         int endNeuronCount = model->neuronsPerLayer[endLayerIndex];
 
         double* layerBiases = model->biases[endLayerIndex];
@@ -567,19 +579,59 @@ void freeParameters(struct Model* model) {
         double** layerWeights = model->weights[endLayerIndex];
         free(layerWeights);
     }
+
+    free(model->biases);
+    free(model->weights);
 }
 
 void initValues(struct Model* model) {
-    for (int layerIndex = 0; layerIndex < NUMBER_OF_LAYERS; layerIndex++) {
+    model->values = malloc(sizeof(double*) * model->numberOfLayers);
+
+    for (int layerIndex = 0; layerIndex < model->numberOfLayers; layerIndex++) {
         int neuronsInLayer = model->neuronsPerLayer[layerIndex];
         model->values[layerIndex] = malloc(sizeof(double) * neuronsInLayer);
     }
 }
 
 void freeValues(struct Model* model) {
-    for (int layerIndex = 0; layerIndex < NUMBER_OF_LAYERS; layerIndex++) {
+    for (int layerIndex = 0; layerIndex < model->numberOfLayers; layerIndex++) {
         double* layerValues = model->values[layerIndex];
 
-        //free(layerValues);
+        free(layerValues);
     }
+
+    free(model->values);
+}
+
+void initializeModel(struct Model* model, int neuronsPerLayer[], int numberOfLayers, double learningRate, ActivationFunctionType activationFunctionType) {
+    switch (activationFunctionType) {
+        case SIGMOID: {
+            model->getActivation = getSigmoid;
+            model->getActivationPrime = getSigmoidPrime;
+            break;
+        }
+
+        case RELU: {
+            model->getActivation = getReLU;
+            model->getActivationPrime = getReLUPrime;
+            break;
+        }
+
+        case TANH: {
+            model->getActivation = getTanH;
+            model->getActivationPrime = getTanH;
+            break;
+        }
+    }
+
+    model->getCost = getCost;
+    model->getCostPrime = getCostPrime;
+    model->learningRate = learningRate;
+    model->numberOfLayers = numberOfLayers;
+    model->neuronsPerLayer = neuronsPerLayer;
+    model->getInitialBiasValue = getInitialBias;
+    model->getInitialWeightValue = getInitialRandomWeight;
+
+    initParameters(model);
+    initValues(model);
 }

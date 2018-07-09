@@ -15,21 +15,14 @@ int main() {
     time(&currentTime);
     srand(currentTime);
 
-    struct Model model = {
-        .neuronsPerLayer = {2, 2, 1},
-        .learningRate = 1,
+    int neuronsPerLayer[] = {2, 5, 1};
+    int layerCount = 3;
 
-        // Default values
-        .getActivation = getSigmoid,
-        .getActivationDerivative = getSigmoidPrime,
-        .getCost = getCost,
-        .getCostDerivative = getCostPrime,
-        .getInitialWeightValue = getInitialRandomWeight,
-        .getInitialBiasValue = getInitialBias,
-    };
+    struct Model model;
+    initializeModel(&model, neuronsPerLayer, layerCount, 0.01, SIGMOID);
 
     int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER];
-    int numberOfOutputs = model.neuronsPerLayer[OUTPUT_LAYER];
+    int numberOfOutputs = model.neuronsPerLayer[layerCount - 1];
 
     // Change working directory so data can be referenced relative to parent data folder
     chdir("..");
@@ -103,11 +96,8 @@ int main() {
         free(predictedOutput);
     }
 
-    freeColumnNames(&trainData);
-    freeElements(&trainData);
-
-    freeColumnNames(&testData);
-    freeElements(&testData);
+    freeData(&trainData);
+    freeData(&testData);
 
     freeValues(&model);
     freeParameters(&model);

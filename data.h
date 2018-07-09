@@ -14,7 +14,6 @@ struct Data {
 };
 
 void fill(struct Data* data, char fileName[]);
-void freeColumnNames(struct Data* data);
-void freeElements(struct Data* data);
+void freeData(struct Data* data);
 
 #endif

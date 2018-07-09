@@ -80,6 +80,11 @@ void fill(struct Data* data, char fileName[]) {
     }
 }
 
+void freeData(struct Data* data) {
+    freeColumnNames(data);
+    freeElements(data);
+}
+
 void freeColumnNames(struct Data* data) {
     free(data->columnNames);
 }
