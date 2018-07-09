@@ -7,7 +7,7 @@
 #include "functions.h"
 #include "data.h"
 
-#define EPOCH_COUNT 1000000
+#define EPOCH_COUNT 100000
 
 #define PRINT_TEST_RESULTS true
 
@@ -24,9 +24,9 @@ int main() {
     int layerCount = 3;
 
     struct Model model;
-    initializeModel(&model, neuronsPerLayer, layerCount, 1, SIGMOID);
+    initializeModel(&model, neuronsPerLayer, layerCount, 0.2, SIGMOID);
 
-    int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER];
+    int numberOfInputs = model.neuronsPerLayer[INPUT_LAYER_INDEX];
     int numberOfOutputs = model.neuronsPerLayer[layerCount - 1];
 
     // Change working directory so data can be referenced relative to parent data folder
@@ -50,10 +50,8 @@ int main() {
 
     time_t time1;
     time(&time1);
-    clock()
 
-    for (int epochIndex = 0; epochIndex < EPOCH_COUNT; epochIndex++)
-        train(&model, &trainData, inputColumnIndices, outputColumnIndices);
+    train(&model, &trainData, inputColumnIndices, outputColumnIndices, EPOCH_COUNT);
 
     time_t time2;
     time(&time2);
@@ -75,8 +73,8 @@ int main() {
         double inputs[numberOfInputs];
         double targetOutputs[numberOfOutputs];
 
-        initInput(inputs, entry, inputColumnIndices, numberOfInputs);
-        initTargetOutput(targetOutputs, entry, outputColumnIndices, numberOfOutputs);
+        initializeInput(inputs, entry, inputColumnIndices, numberOfInputs);
+        initializeTargetOutput(targetOutputs, entry, outputColumnIndices, numberOfOutputs);
 
 #if PRINT_TEST_RESULTS
         printf("Inputs =");

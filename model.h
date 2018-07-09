@@ -11,7 +11,7 @@ typedef int ActivationFunctionType;
 #define TANH 1
 #define RELU 2
 
-#define INPUT_LAYER 0
+#define INPUT_LAYER_INDEX 0
 
 typedef double (*CostFunction)(double, double);
 typedef double (*ActivationFunction)(double);
@@ -60,7 +60,7 @@ struct Model {
     BiasInitializingFunction getInitialBiasValue;
 };
 
-void train(struct Model* model, struct Data* data, int inputColumnIndices[], int targetOutputColumnIndices[]);
+void train(struct Model* model, struct Data* data, int inputColumnIndices[], int targetOutputColumnIndices[], int epochCount);
 void test(struct Model* model, struct Data* data, int inputColumnIndices[], int outputColumnIndices[], double* predictedOutputs[], double costs[]);
 
 void initParameters(struct Model* model);
@@ -69,8 +69,9 @@ void initValues(struct Model* model);
 void freeParameters(struct Model* model);
 void freeValues(struct Model* model);
 
-void initInput(double input[], const double entry[], const int inputColumnIndices[], int inputColumnIndicesCount);
-void initTargetOutput(double targetOutput[], const double entry[], const int targetOutputIndices[], int targetOutputIndicesCount);
+void initializeInput(double *input, const double *entry, const int *inputColumnIndices, int inputColumnIndicesCount);
+void initializeTargetOutput(double *targetOutput, const double *entry, const int *targetOutputIndices,
+                            int targetOutputIndicesCount);
 
 void initializeModel(struct Model* model, int neuronsPerLayer[], int numberOfLayers, double learningRate, ActivationFunctionType activationFunctionType);
 

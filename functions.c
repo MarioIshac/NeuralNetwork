@@ -12,7 +12,7 @@ double getSigmoidPrime(double activationValue) {
 }
 
 double getReLU(double weightedSum) {
-    return weightedSum < 0 ? 0 : weightedSum;
+    return weightedSum <= 0 ? 0 : weightedSum;
 }
 
 double getReLUPrime(double activationValue) {
